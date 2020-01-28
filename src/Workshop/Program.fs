@@ -8,6 +8,7 @@ open Microsoft.AspNetCore.Hosting
 open Microsoft.Extensions.Logging
 open Microsoft.Extensions.DependencyInjection
 open Giraffe
+open Workshop.Domain
 
 // ---------------------------------
 // Models
@@ -49,6 +50,27 @@ module Views =
 // Web app
 // ---------------------------------
 
+module SampleData = 
+    open FSharpPlus.Data
+    
+    let address = {
+        Street = (NonEmptyString.create "Pepa" |> Option.get);
+        HomeNumber = (NonEmptyString.create "Pepa" |> Option.get);
+        City = (NonEmptyString.create "Pepa" |> Option.get);
+        ZipCode = (ZipCode.create (NonEmptyString.create "26718" |> Option.get) |> Option.get)
+    }
+
+    let testAccount: Account = {
+        Id = AccountId (Guid.NewGuid ());
+        FirstName = (NonEmptyString.create "Pepa" |> Option.get);
+        LastName = (NonEmptyString.create "Starychfojtu" |> Option.get);
+        BirthDateUtc = Some DateTime.UtcNow;
+        ContactInfo = {
+            ContactMethod = Phone (PhoneNumber.create (NonEmptyString.create "+420777777777" |> Option.get) |> Option.get, None);
+            Addresses = NonEmptyList.create address List.empty
+        }
+    }
+
 let indexHandler (name : string) =
     let greetings = sprintf "Hello %s, from Giraffe!" name
     let model     = { Text = greetings }
@@ -62,7 +84,8 @@ let webApp =
                 route "/" >=> indexHandler "world"
                 routef "/hello/%s" indexHandler
             ]
-        setStatusCode 404 >=> text "Not Found" ]
+        setStatusCode 404 >=> text "Not Found" 
+    ]
 
 // ---------------------------------
 // Error handler
