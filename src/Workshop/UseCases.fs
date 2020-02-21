@@ -21,11 +21,16 @@ open Workshop.Library
 /// - Refactoring methods with reader
 /// - Note that functions now do not take interfaces, yet they return the same thing
 /// - Automatic composing of environment requirements
+/// - Try to implement it with Reader only -> failure
 /// - In order to finish it, we need ReaderT
 /// - MonadTransformers
 ///
 /// FLOW OF STATE 5 (IO)
 /// - Introducing IO
+/// - Env, Success, Error
+/// - Using Nothing type
+/// - Function to lift everything to the IO level, then easily work with do-notation
+/// - Note that type inference and error message are at its boundaries and the developer experience is not great
 
 type CreateAccountError =
     | BirthDateMustBeInPast
@@ -64,24 +69,25 @@ let createAccount accountRepository dateTimeProvider guidGenerator accountParame
     >>= (fun _ -> addAccount accountRepository guidGenerator accountParameters)
     
 // ---------------- PHASE 4 --------------------
-    
-let private checkBirthDate2 = function
-    | Some birthDate ->
-        DateTimeProvider.nowUtc
-        |> Reader.map (fun nowUtc ->
-            if birthDate > nowUtc 
+        
+let private checkBirthDate2 birthDate = monad {
+    let! nowUtc = DateTimeProvider.nowUtc
+    return  
+        match birthDate with
+        | Some d ->     
+            if d > nowUtc 
                 then Error BirthDateMustBeInPast
                 else Ok ()
-        )
-    | None ->
-        Reader(fun _ -> Ok ())
+        | None -> Ok ()
+}
         
-let private addAccount2 accountParameters =
-    let createAccount id = Account.create (AccountId id) accountParameters.FirstName accountParameters.LastName accountParameters.BirthDateUtc accountParameters.ContactInfo
+let private addAccount2 accountParameters = monad {
     let mapRepositoryError = function AccountRepositoryError.AccountAlreadyExists -> CreateAccountError.AccountAlreadyExists
-    
-    GuidGenerator.create |> Reader.map createAccount
-    >>= AccountRepository.add |> Reader.map (Result.mapError mapRepositoryError)
+    let! id = GuidGenerator.create
+    let account = Account.create (AccountId id) accountParameters.FirstName accountParameters.LastName accountParameters.BirthDateUtc accountParameters.ContactInfo
+    let! result = AccountRepository.add account
+    return Result.mapError mapRepositoryError result
+}
     
 // let createAccount2 accountParameters =
     // checkBirthDate2 accountParameters.BirthDateUtc
