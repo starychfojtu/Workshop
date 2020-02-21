@@ -66,7 +66,7 @@ module IO =
     let bindError (f: Result<'a, 'e1> -> Result<'b, 'e2>) (io: IO<'a, 'env, 'e1>): IO<'b, 'env, 'e2> =
         Reader.mapDirect f io
         
-    let matchErrorType<'e, 'a, 'env> (io: IO<'a, 'env, Nothing>): IO<'a, 'env, 'e> =
+    let matchErrorType<'a, 'env, 'e> (io: IO<'a, 'env, Nothing>): IO<'a, 'env, 'e> =
         bindError (function Ok a -> Ok a | Error _ -> failwith "Cannot happen.") io
         
     let execute env (io: IO<'a, 'env, 'error>) = Reader.execute env io

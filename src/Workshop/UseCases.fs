@@ -63,6 +63,8 @@ let createAccount accountRepository dateTimeProvider guidGenerator accountParame
     >>= (fun _ -> checkAddressQuota accountParameters.ContactInfo.Addresses)
     >>= (fun _ -> addAccount accountRepository guidGenerator accountParameters)
     
+// ---------------- PHASE 4 --------------------
+    
 let private checkBirthDate2 = function
     | Some birthDate ->
         DateTimeProvider.nowUtc
@@ -86,24 +88,41 @@ let private addAccount2 accountParameters =
     // >>= (fun r -> r >>= (fun _ -> checkAddressQuota accountParameters.ContactInfo.Addresses))
     // not finished -> last binding is a problem, going to stage 5
     
-let private checkBirthDate3 = function
-    | Some birthDate ->
-        DateTimeProvider.nowUtc2 |> IO.matchErrorType
-        >>= (fun nowUtc -> IO.fromResult <|
-                if birthDate > nowUtc 
-                    then Error BirthDateMustBeInPast
-                    else Ok ())
-    | None ->
-        IO.id ()
+// ---------------- PHASE 5 --------------------
+
+let private checkBirthDate3 birthDate = monad {
+    let! nowUtc = DateTimeProvider.nowUtc2 |> IO.matchErrorType
+    let validBirthDate =     
+        match birthDate with
+        | Some d ->     
+            if d > nowUtc 
+                then Error BirthDateMustBeInPast
+                else Ok ()
+        | None -> Ok ()
+    let! test = IO.fromResult validBirthDate
+    return test
+}
+
+let private checkAddressQuota3 addresses =
+    let result = 
+        if Seq.length addresses > 10
+            then Error AddressQuotaExceeded
+            else Ok ()
+    IO.fromResult result
     
-let private saveAccount account =
+let private saveAccount3 account =
     AccountRepository.add2 account |> IO.mapError (fun _ -> CreateAccountError.AccountAlreadyExists) // TODO: make repository return error.
 
-let private addAccount4 accountParameters = monad {
+let private addAccount3 accountParameters = monad {
     let! id = GuidGenerator.create2 |> IO.matchErrorType
     let account = Account.create (AccountId id) accountParameters.FirstName accountParameters.LastName accountParameters.BirthDateUtc accountParameters.ContactInfo
-    return! saveAccount account
+    return! saveAccount3 account
 }
+
+let createAccount3 accountParameters =
+    checkBirthDate3 accountParameters.BirthDateUtc
+    >>= (fun _ -> checkAddressQuota3 accountParameters.ContactInfo.Addresses)
+    >>= (fun _ -> addAccount3 accountParameters)
 
     
     

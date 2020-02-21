@@ -9,6 +9,7 @@ open Workshop.UseCases
 open Giraffe
 open Microsoft.AspNetCore.Http
 open FSharp.Control.Tasks
+open Workshop
 open Workshop.Domain
 open Workshop.Domain
 open Workshop.Domain
@@ -185,24 +186,17 @@ module CreateAccount =
             | None -> Failure [EmailOrPhoneNumberCannotBeEmpty]
         
     let parseContactMethod parameters =
-        let email =
-            parameters.Email
-            |> Parse.nonEmptyStringOption InvalidEmail
-            |> Validation.bind (function
-                | Some s -> Email.create s |> Validation.ofOption [InvalidEmail] |> Validation.map Some
-                | None -> Success None)
+        let bindOption f =
+            Validation.bind (function | Some s -> f s | None -> Success None)
             
-            
-        let phone =
-            parameters.PhoneNumber
-            |> Parse.nonEmptyStringOption InvalidPhoneNumber
-            |> Validation.bind (function
-                | Some s -> PhoneNumber.create s |> Validation.ofOption [InvalidPhoneNumber] |> Validation.map Some
-                | None -> Success None)
+        let parse parseF error value =
+            value
+            |> Parse.nonEmptyStringOption error
+            |> bindOption (parseF >> (Validation.ofOption [error]) >> (Validation.map Some))
             
         createContactMethod
-        <!> email
-        <*> phone
+        <!> parse Email.create InvalidEmail parameters.Email
+        <*> parse PhoneNumber.create InvalidPhoneNumber parameters.PhoneNumber
         |> Validation.bind (fun v -> v)
     
     let parseContactInfo parameters =
@@ -216,6 +210,16 @@ module CreateAccount =
         <*> Parse.nonEmptyString LastNameCannotBeEmpty parameters.LastName
         <*> Validation.Success parameters.BirthDateUtc
         <*> parseContactInfo parameters
-    
+        
+    let parseParameters parameters =
+        parse parameters
+        |> Validation.mapFailure ParameterErrors
+        |> Validation.toResult
+        |> IO.fromResult
+        
+//    let execute parameters =
+//        parseParameters
+//        >>= UseCases.addAccount4
+//    
 //    let handler =
-//        Generic.postHandler (fun p -> IO.id p) (fun a -> a)
+//        Generic.postHandler execute (fun a -> a)
