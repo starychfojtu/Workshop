@@ -217,9 +217,9 @@ module CreateAccount =
         |> Validation.toResult
         |> IO.fromResult
         
-//    let execute parameters =
-//        parseParameters
-//        >>= UseCases.addAccount4
-//    
+    let execute parameters =
+        parseParameters parameters
+        >>= (UseCases.createAccount3 >> (IO.mapError BusinessError))
+    
 //    let handler =
 //        Generic.postHandler execute (fun a -> a)

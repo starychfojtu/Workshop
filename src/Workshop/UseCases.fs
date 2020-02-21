@@ -24,6 +24,7 @@ open Workshop.Library
 /// - Try to implement it with Reader only -> failure
 /// - In order to finish it, we need ReaderT
 /// - MonadTransformers
+/// - Not future proof, hard to work with -> IO
 ///
 /// FLOW OF STATE 5 (IO)
 /// - Introducing IO
@@ -98,15 +99,13 @@ let private addAccount2 accountParameters = monad {
 
 let private checkBirthDate3 birthDate = monad {
     let! nowUtc = DateTimeProvider.nowUtc2 |> IO.matchErrorType
-    let validBirthDate =     
+    return! IO.fromResult <|    
         match birthDate with
         | Some d ->     
             if d > nowUtc 
                 then Error BirthDateMustBeInPast
                 else Ok ()
         | None -> Ok ()
-    let! test = IO.fromResult validBirthDate
-    return test
 }
 
 let private checkAddressQuota3 addresses =
