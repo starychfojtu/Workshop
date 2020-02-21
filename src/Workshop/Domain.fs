@@ -43,6 +43,13 @@ module NonEmptyString =
         if String.IsNullOrEmpty s  
             then None
             else Some <| NonEmptyString s
+            
+module Email =
+    let create (NonEmptyString s) =
+        try
+            Some (new MailAddress(s))
+        with
+        | ex -> None
 
 type PhoneNumber = private PhoneNumber of NonEmptyString
     with member s.Value = match s with PhoneNumber v -> v
@@ -168,7 +175,7 @@ module Account =
                 else a
                 
         let newAddresses = NonEmptyList.map transformAddress account.ContactInfo.Addresses
-        (setl (contactInfo << addresses) newAddresses) account
+        setl (contactInfo << addresses) newAddresses account
         
     let moveToCity account oldCity newCity: Account =
         setl (contactInfo << addresses << items << (filtered (fun a -> a.City = oldCity)) << city) newCity account
