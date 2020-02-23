@@ -11,8 +11,7 @@ open Microsoft.AspNetCore.Http
 open FSharp.Control.Tasks
 open Workshop
 open Workshop.Domain
-open Workshop.Domain
-open Workshop.Domain
+open Workshop.InMemoryEnvironment
 open Workshop.Library
 
 /// FLOW OF STAGE 6
@@ -29,7 +28,6 @@ open Workshop.Library
 /// - Note that hey can build generic code for dealing with errors for non empty strings etc.
 /// - Building from the bottom
 /// - Validation is not a monad, even though it has bind
-
 
 module Dto =
     type ParameterError = {
@@ -68,8 +66,8 @@ module Generic =
             
     let private serializationConfig = JsonConfig.create(jsonFieldNaming = Json.lowerCamelCase)
     
-    let private serializeToJson =
-        Json.serializeEx serializationConfig
+    let private serializeToJson (obj: 'a) =
+        Json.serializeEx serializationConfig obj
     
     let private setStatusCode (ctx: HttpContext) code =
         ctx.SetStatusCode code
@@ -91,18 +89,17 @@ module Generic =
             | Ok s -> setStatusCode ctx 200 |> (fun _ -> text <| serializeToJson s) 
             | Error e -> setStatusCode ctx 400 |> (fun _ -> text <| serializeToJson e)
         response next ctx
-    
-    // TODO: get env instead of passing unit.
+
     let getHandler handler serialize next ctx = 
-        bindQueryString<'parameters> ctx |> getResult () next ctx handler serialize
+        bindQueryString<'parameters> ctx |> getResult (InMemoryEnvironment()) next ctx handler serialize
     
     let postHandler handler serialize next ctx = 
         task {
             let! parameters = bindModelAsync ctx
             return!
                 match parameters with
-                | Ok p -> getResult () next ctx handler serialize p
-                | Error e -> getResult () next ctx (fun _ -> error e |> Error |> IO.fromResult) (fun a -> a) ()
+                | Ok p -> getResult (InMemoryEnvironment()) next ctx handler serialize p
+                | Error e -> getResult (InMemoryEnvironment()) next ctx (fun _ -> error e |> Error |> IO.fromResult) (fun a -> a) ()
         }
         
 module Parse =
@@ -220,6 +217,10 @@ module CreateAccount =
     let execute parameters =
         parseParameters parameters
         >>= (UseCases.createAccount3 >> (IO.mapError BusinessError))
+        
+    let serialize = function
+        | Ok a -> Ok "Account was created."
+        | Error e -> Error <| Dto.error "Things went wrong."
     
-//    let handler =
-//        Generic.postHandler execute (fun a -> a)
+    let handler<'a> =
+        Generic.postHandler execute serialize

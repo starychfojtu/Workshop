@@ -116,7 +116,7 @@ let private checkAddressQuota3 addresses =
     IO.fromResult result
     
 let private saveAccount3 account =
-    AccountRepository.add2 account |> IO.mapError (fun _ -> CreateAccountError.AccountAlreadyExists) // TODO: make repository return error.
+    AccountRepository.add2 account |> IO.mapError (function AccountRepositoryError.AccountAlreadyExists -> CreateAccountError.AccountAlreadyExists)
 
 let private addAccount3 accountParameters = monad {
     let! id = GuidGenerator.create2 |> IO.matchErrorType

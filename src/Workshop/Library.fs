@@ -59,6 +59,8 @@ module IO =
     
     let operation f: IO<'a, 'env, Nothing> = ReaderT(f >> Ok)
     
+    let resultOperation f: IO<'a, 'env, 'e> = ReaderT(f)
+    
     let map (f: 'a -> 'b) (io: IO<'a, 'env, 'e>): IO<'b, 'env, 'e> = ReaderT.map f io
     
     let mapError (f: 'e1 -> 'e2) (io: IO<'a, 'env, 'e1>): IO<'a, 'env, 'e2> = Reader.mapError f io

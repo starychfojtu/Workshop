@@ -13,7 +13,7 @@ type IAccountRepository =
     
 module AccountRepository =
     let add<'e when 'e :> IAccountRepository> account = Reader(fun (e : 'e) -> e.add account)
-    let add2<'e when 'e :> IAccountRepository> account = IO.operation (fun (e : 'e) -> e.add account)
+    let add2<'e when 'e :> IAccountRepository> account = IO.resultOperation (fun (e : 'e) -> e.add account)
     
 type IDateTimeProvider =
     abstract member nowUtc: unit -> DateTime
