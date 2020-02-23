@@ -218,6 +218,7 @@ module CreateAccount =
         parseParameters parameters
         >>= (UseCases.createAccount3 >> (IO.mapError BusinessError))
         
+    // TODO: Serialize Account + match on the error and serialize it.
     let serialize = function
         | Ok a -> Ok "Account was created."
         | Error e -> Error <| Dto.error "Things went wrong."

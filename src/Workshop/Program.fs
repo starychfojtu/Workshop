@@ -8,6 +8,7 @@ open Microsoft.AspNetCore.Hosting
 open Microsoft.Extensions.Logging
 open Microsoft.Extensions.DependencyInjection
 open Giraffe
+open Workshop.Api
 open Workshop.Domain
 
 // ---------------------------------
@@ -83,6 +84,10 @@ let webApp =
             choose [
                 route "/" >=> indexHandler "world"
                 routef "/hello/%s" indexHandler
+            ]
+        POST >=>
+            choose [
+                route "/account" >=> CreateAccount.handler
             ]
         setStatusCode 404 >=> text "Not Found" 
     ]
